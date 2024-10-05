@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Ludo</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="js/three.js"></script>
+    <script>
+      // Definition of scene, camera and renderer
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      var renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x220000);
+      document.body.appendChild(renderer.domElement);
+
+      // Definition of geometry for each slot and for each piece of the ludo
+      var slot_geo = new THREE.BoxGeometry(1, 1, 0.2);
+      var piece_geo = new THREE.ConeGeometry(0.4, 1.25, 8, 1);
+      var piece_geo_dupl = new THREE.ConeGeometry(0.6, 2.5, 8, 1);
+
+      // Declarations of vectors in order to get each one of the slots and pieces
+      var slots = [];
+      var pieces = [];
+      var dies = [];
+
+      // Global variables
+      var setPiece = false;
+
+      // Material definitions: colors for the board
+      var mat_clear = new THREE.MeshLambertMaterial({ color: 0xffff88 });
+      var mat_dark = new THREE.MeshLambertMaterial({ color: 0x824501 });
+      var mat_highlight = new THREE.MeshBasicMaterial({ color: 0xaaffaa });
+      var mat_highlight_dupl = new THREE.MeshBasicMaterial({ color: 0xfcb203 });
+
+      // Material definitions: colors for each team in LUDO
+      var mat_green = new THREE.MeshLambertMaterial({ color: 0x33cc33 });
+      var mat_red = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+      var mat_blue = new THREE.MeshLambertMaterial({ color: 0x0033cc });
+      var mat_yellow = new THREE.MeshLambertMaterial({ color: 0xffff00 });
+      var mat_gold = new THREE.MeshLambertMaterial({ color: 0xf3d802 });
+
+      // Initial definition of each of the geometries implemented
+      for (var i = 0; i < 13; i++)
+        for (var j = 0; j < 13; j++) {
+          if (
+            (i == 6 && j > 0 && j < 6) ||
+            (i == 5 && j == 1) ||
+            (i > 1 && i < 4 && j > 0 && j < 3)
+          ) {
+            // board - yellow
+            var slot = new THREE.Mesh(slot_geo, mat_yellow);
+            slot.color = "y";
+            slot.is_special = true;
+            slot.final = false;
+            if (i == 6 && j == 5) slot.final = true;
+            if (j == 1 && i == 5) slot.is_special = false;
+            else if (i > 1 && i < 4 && j > 0 && j < 3) {
+              var piece = new THREE.Mesh(piece_geo, mat_yellow);
+              piece.color = "y";
+              setPiece = true;
+            }
+          } else if (
+            (i == 6 && j > 6 && j < 12) ||
+            (i == 7 && j == 11) ||
+            (i > 8 && i < 11 && j > 9 && j < 12)
+          ) {
+            // board - green
+            var slot = new THREE.Mesh(slot_geo, mat_green);
+            slot.color = "g";
+            slot.is_special = true;
+            slot.final = false;
+            if (i == 6 && j == 7) slot.final = true;
+            if (j == 11 && i == 7) slot.is_special = false;
+            else if (i > 8 && i < 11 && j > 9 && j < 12) {
+              var piece = new THREE.Mesh(piece_geo, mat_green);
+              piece.color = "g";
+              setPiece = true;
+            }
+          } else if (
+            (j == 6 && i > 6 && i < 12) ||
+            (j == 5 && i == 11) ||
+            (i > 9 && i < 12 && j > 1 && j < 4)
+          ) {
+            // board - red
+            var slot = new THREE.Mesh(slot_geo, mat_red);
+            slot.color = "r";
+            slot.is_special = true;
+            slot.final = false;
+            if (i == 7 && j == 6) slot.final = true;
+            if (j == 5 && i == 11) slot.is_special = false;
+            else if (i > 9 && i < 12 && j > 1 && j < 4) {
+              var piece = new THREE.Mesh(piece_geo, mat_red);
+              piece.color = "r";
+              setPiece = true;
+            }
+          } else if (
+            (j == 6 && i > 0 && i < 6) ||
+            (j == 7 && i == 1) ||
+            (i > 0 && i < 3 && j > 8 && j < 11)
+          ) {
+            // board - blue
+            var slot = new THREE.Mesh(slot_geo, mat_blue);
+            slot.color = "b";
+            slot.is_special = true;
+            slot.final = false;
+            if (i == 5 && j == 6) slot.final = true;
+            if (j == 7 && i == 1) slot.is_special = false;
+            else if (i > 0 && i < 3 && j > 8 && j < 11) {
+              var piece = new THREE.Mesh(piece_geo, mat_blue);
+              piece.color = "b";
+              setPiece = true;
+            }
+          } else if (
+            (i < 5 && (j < 5 || j > 7)) ||
+            (i > 7 && (j < 5 || j > 7)) ||
+            (i == 6 && j == 6)
+          ) {
+            // board - dark
+            var slot = new THREE.Mesh(slot_geo, mat_dark);
+            slot.color = "d";
+            slot.is_special = true;
+          } else {
+            var slot = new THREE.Mesh(slot_geo, mat_clear); // board - clear
+            slot.color = "c";
+            slot.is_special = false;
+          }
+
+          slot.position.x = i;
+          slot.position.y = j;
+          slot.piece = null;
+          scene.add(slot);
+          slots.push(slot);
+
+          if (setPiece) {
+            piece.position.x = i;
+            piece.position.y = j;
+            piece.position.z = 0.4;
+            piece.rotation.x = Math.PI / 2.0;
+            scene.add(piece);
+            pieces.push(piece);
+            slot.piece = piece; // slot tem peça
+            piece.slot = slot;
+            piece.init = false;
+            piece.dupl = false; // slot da peça
+            setPiece = false;
+          }
+        }
+
+      // Point of light settings
+      var light_one = new THREE.PointLight(0xffffff, 0.6);
+      var light_two = new THREE.PointLight(0xffffff, 0.6);
+      var light_three = new THREE.PointLight(0xffffff, 0.6);
+      var light_four = new THREE.PointLight(0xffffff, 0.6);
+      light_one.position.set(2, 0, 2);
+      light_two.position.set(2, 10, 2);
+      light_three.position.set(12, 2, 2);
+      light_four.position.set(10, 10, 2);
+      scene.add(light_one);
+      scene.add(light_two);
+      scene.add(light_three);
+      scene.add(light_four);
+
+      // Camera settings
+      camera.position.x = 4;
+      camera.position.z = 5;
+      camera.position.y = -3;
+      camera.up = new THREE.Vector3(0, 0, 1);
+      camera.lookAt(new THREE.Vector3(4, 4, 0));
+
+      // Definition of the center of the board
+      look = new THREE.Vector3(4.5, 6.5, 0);
+
+      // Definition of raycaster object (picking things with mouse) and mouse variables
+      var raycaster = new THREE.Raycaster();
+      var mouse = new THREE.Vector2(-1000, -1000);
+      var nmouse = new THREE.Vector2(-1000, -1000);
+
+      // Function designed to update cursor position
+      function updateCursor() {
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+
+        // calculate mouse position in normalized device coordinates
+        // (-1 to +1) for both components
+        nmouse.x = (event.clientX / width) * 2 - 1;
+        nmouse.y = -(event.clientY / height) * 2 + 1;
+        mouse.x = event.clientX - width / 2;
+        mouse.y = -event.clientY + height / 2;
+
+        raycaster.setFromCamera(nmouse, camera);
+      }
+
+      // Global variables
+      var state = "preselect";
+      var grab = null;
+      var grab_x, grab_y;
+      var current_die_value = 6;
+
+      // Die place
+      var dieGeometry = new THREE.BoxGeometry(1, 1, 1);
+      var textureLoader = new THREE.TextureLoader();
+      var dieTexture = textureLoader.load("textures/die.jpg");
+      console.log(dieTexture);
+      var dieMaterial = new THREE.MeshBasicMaterial({ map: dieTexture });
+      // var die = new THREE.Mesh(dieGeometry, dieMaterial);
+      // die.position.set(5, 5, 1.6); // Adjust position to be within camera view
+      // scene.add(die);
+
+      var floor_geo = new THREE.BoxGeometry(2, 2, 0.2);
+      var diePlace = new THREE.Mesh(floor_geo, mat_dark);
+      var diePlace2 = new THREE.Mesh(floor_geo, mat_dark);
+      diePlace.position.x = 13;
+      diePlace.position.y = 2;
+      diePlace.position.z = 1;
+      diePlace2.position.x = 14;
+      diePlace2.position.y = 2;
+      diePlace2.position.z = 1;
+      scene.add(diePlace);
+      scene.add(diePlace2);
+      dies.push(diePlace);
+      dies.push(diePlace2);
+      // assign different parts of image to different parts of cube
+      // Clear existing UV mapping
+      dieGeometry.faceVertexUvs[0] = [];
+
+      // Define UV coordinates for each face (1 to 5 in the layout you provided)
+      var one = [
+        new THREE.Vector2(0.0, 0.5), // Bottom-left (1)
+        new THREE.Vector2(0.0, 1.0), // Top-left (1)
+        new THREE.Vector2(0.333, 1.0), // Top-right (1)
+        new THREE.Vector2(0.333, 0.5), // Bottom-right (1)
+      ];
+
+      var two = [
+        new THREE.Vector2(0.333, 0.5), // Bottom-left (2)
+        new THREE.Vector2(0.333, 1.0), // Top-left (2)
+        new THREE.Vector2(0.666, 1.0), // Top-right (2)
+        new THREE.Vector2(0.666, 0.5), // Bottom-right (2)
+      ];
+
+      var three = [
+        new THREE.Vector2(0.666, 0.5), // Bottom-left (3)
+        new THREE.Vector2(0.666, 1.0), // Top-left (3)
+        new THREE.Vector2(1.0, 1.0), // Top-right (3)
+        new THREE.Vector2(1.0, 0.5), // Bottom-right (3)
+      ];
+
+      var six = [
+        new THREE.Vector2(0.0, 0.0), // Bottom-left (6)
+        new THREE.Vector2(0.0, 0.5), // Top-left (6)
+        new THREE.Vector2(0.333, 0.5), // Top-right (6)
+        new THREE.Vector2(0.333, 0.0), // Bottom-right (6)
+      ];
+
+      var five = [
+        new THREE.Vector2(0.333, 0.0), // Bottom-left (5)
+        new THREE.Vector2(0.333, 0.5), // Top-left (5)
+        new THREE.Vector2(0.666, 0.5), // Top-right (5)
+        new THREE.Vector2(0.666, 0.0), // Bottom-right (5)
+      ];
+
+      var four = [
+        new THREE.Vector2(0.666, 0.0), // Bottom-left (4)
+        new THREE.Vector2(0.666, 0.5), // Top-left (4)
+        new THREE.Vector2(1.0, 0.5), // Top-right (4)
+        new THREE.Vector2(1.0, 0.0), // Bottom-right (4)
+      ];
+
+      // Must be defined in a counter-clockwise direction
+      // Assign UV mapping to faces
+      // Face for 1
+      dieGeometry.faceVertexUvs[0][0] = [one[0], one[1], one[3]];
+      dieGeometry.faceVertexUvs[0][1] = [one[1], one[2], one[3]];
+
+      // Face for 2
+      dieGeometry.faceVertexUvs[0][2] = [two[0], two[1], two[3]];
+      dieGeometry.faceVertexUvs[0][3] = [two[1], two[2], two[3]];
+
+      // Face for 3
+      dieGeometry.faceVertexUvs[0][4] = [three[0], three[1], three[3]];
+      dieGeometry.faceVertexUvs[0][5] = [three[1], three[2], three[3]];
+
+      // Face for 6
+      dieGeometry.faceVertexUvs[0][6] = [six[0], six[1], six[3]];
+      dieGeometry.faceVertexUvs[0][7] = [six[1], six[2], six[3]];
+
+      // Face for 5
+      dieGeometry.faceVertexUvs[0][8] = [five[0], five[1], five[3]];
+      dieGeometry.faceVertexUvs[0][9] = [five[1], five[2], five[3]];
+
+      // Face for 4
+      dieGeometry.faceVertexUvs[0][10] = [four[0], four[1], four[3]];
+      dieGeometry.faceVertexUvs[0][11] = [four[1], four[2], four[3]];
+
+      var die = new THREE.Mesh(dieGeometry, dieMaterial);
+      var die2 = new THREE.Mesh(dieGeometry, dieMaterial);
+      die.position.x = 13;
+      die.position.y = 2;
+      die.position.z = 1.6;
+      die2.position.x = 14;
+      die2.position.y = 2;
+      die2.position.z = 1.6;
+      scene.add(die);
+      scene.add(die2);
+      dies.push(die);
+      dies.push(die2);
+
+      function updateNumber() {
+        var min = 1; // Set min to 1
+        var max = 5; // Set max to 5
+        // Generate numbers between 1 and 5
+        current_die_value1 = Math.floor(Math.random() * (max - min + 1)) + min; // Fix max range to include 5
+        current_die_value2 = Math.floor(Math.random() * (max - min + 1)) + min; // Fix max range to include 5
+      }
+      // restoreDie to initial position
+      function restoreDie() {
+        die.rotation.x = 0;
+        die.rotation.y = 0;
+        die2.rotation.x = 0;
+        die2.rotation.y = 0;
+      }
+      // rotateDie
+      function rotateDie() {
+        // Rotate die1
+        if (current_die_value1 == 1) {
+          die.rotation.x = (180.0 * Math.PI) / 180.0; // Rotate 180° around x-axis
+          die.rotation.y = 0; // No rotation around y-axis
+        } else if (current_die_value1 == 2) {
+          die.rotation.x = (-90.0 * Math.PI) / 180.0; // Rotate 90° around x-axis
+          die.rotation.y = 0; // No rotation around y-axis
+        } else if (current_die_value1 == 3) {
+          die.rotation.x = 0; // No rotation
+          die.rotation.y = 0; // No rotation
+        } else if (current_die_value1 == 4) {
+          die.rotation.x = 0; // No rotation in x-axis
+          die.rotation.y = (90.0 * Math.PI) / 180.0; // Rotate 90° around y-axis
+        } else if (current_die_value1 == 5) {
+          die.rotation.x = (90.0 * Math.PI) / 180.0; // Rotate -90° around x-axis
+          die.rotation.y = 0; // No rotation around y-axis
+        }
+
+        // Rotate die2
+        if (current_die_value2 == 1) {
+          die2.rotation.x = (180.0 * Math.PI) / 180.0; // Rotate 180° around x-axis
+          die2.rotation.y = 0; // No rotation around y-axis
+        } else if (current_die_value2 == 2) {
+          die2.rotation.x = (-90.0 * Math.PI) / 180.0; // Rotate 90° around x-axis
+          die2.rotation.y = 0; // No rotation around y-axis
+        } else if (current_die_value2 == 3) {
+          die2.rotation.x = 0; // No rotation
+          die2.rotation.y = 0; // No rotation
+        } else if (current_die_value2 == 4) {
+          die2.rotation.x = 0; // No rotation in x-axis
+          die2.rotation.y = (90.0 * Math.PI) / 180.0; // Rotate 90° around y-axis
+        } else if (current_die_value2 == 5) {
+          die2.rotation.x = (90.0 * Math.PI) / 180.0; // Rotate -90° around x-axis
+          die2.rotation.y = 0; // No rotation around y-axis
+        }
+      }
+      // rollDice
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+      async function rollDice() {
+        var i;
+
+        // rotates sometimes before final result
+        for (i = 0; i < 700; i = i + 70) {
+          console.log(i); // DEBUG
+          restoreDie();
+          // Update die values within the loop
+          current_die_value1 = Math.floor(Math.random() * (5 - 1 + 1)) + 1; // Random number between 1 and 5 for die1
+          current_die_value2 = Math.floor(Math.random() * (5 - 1 + 1)) + 1; // Random number between 1 and 5 for die2
+          rotateDie();
+          await sleep(i);
+        }
+        restoreDie(); // rotates Die back to neutral position
+        updateNumber();
+        rotateDie(); // rotates Die to new position
+      }
+      rollDice();
+      let players = ["y", "b", "g", "r"]; // Players
+      let playerRolls = {}; // Object to store players' rolls
+      let turn = "y"; // Current turn holder
+      let current_player_index = 0; // Track current player index
+
+      // Function to initialize the game and determine the starting player
+      async function initializeGame() {
+        // Roll dice for each player
+        for (let color of players) {
+          await rollDice(); // Roll the dice
+          playerRolls[color] = {
+            die1: current_die_value1,
+            die2: current_die_value2,
+          }; // Store rolls
+          console.log(
+            `${color} rolled: ${current_die_value1} and ${current_die_value2}`
+          );
+        }
+
+        // Determine the starting player
+        determineStartingPlayer();
+      }
+
+      // Function to determine the starting player based on the highest roll
+      function determineStartingPlayer() {
+        let highestRoll = 0;
+        let startingPlayer = "";
+
+        // Compare each player's rolls
+        for (let color of players) {
+          let totalRoll = playerRolls[color].die1 + playerRolls[color].die2;
+          console.log(`${color} total roll: ${totalRoll}`);
+
+          if (totalRoll > highestRoll) {
+            highestRoll = totalRoll;
+            startingPlayer = color;
+          }
+        }
+
+        // Set the turn to the player who rolled the highest
+        turn = startingPlayer;
+        console.log(
+          `Player ${turn} starts the game with the highest roll of ${highestRoll}`
+        );
+
+        // Allow the starting player to enter a pawn if applicable
+        entrancePawn(turn);
+      }
+
+      // Function to handle pawn entrance based on the rules
+      function entrancePawn(color) {
+        // Find the available entrance slot based on the color
+        let targetSlot = search_position(color);
+
+        // Ensure we have a valid target slot
+        if (targetSlot) {
+          // Check for a piece of the same color that is currently in the entrance slot
+          if (targetSlot.piece == null) {
+            // Find the piece of the same color that needs to be moved
+            let pieceToMove = pieces.find(
+              (piece) => piece.color === color && piece.init === false
+            );
+
+            if (pieceToMove) {
+              // Move the piece to the target slot
+              // Update the current slot of the piece
+              pieceToMove.slot.piece = null; // Remove piece from its current slot
+              targetSlot.piece = pieceToMove; // Assign piece to the target slot
+              pieceToMove.slot = targetSlot; // Update piece's slot reference
+
+              // Update the piece's position to match the target slot's position
+              pieceToMove.position.x = targetSlot.position.x;
+              pieceToMove.position.y = targetSlot.position.y;
+              pieceToMove.position.z = 0.4; // Set the Z position slightly above the board
+
+              // If needed, mark the piece as "initial" or "in-play"
+              pieceToMove.init = true; // Set to true or whatever condition you have for an entrance pawn
+            }
+          } else {
+            console.log("Target slot is not available for entry.");
+          }
+        } else {
+          console.log("No valid entrance slot found for color: " + color);
+        }
+      }
+
+      // Function to change turns after a player's move
+      function changeTurn() {
+        if (turn === "y") turn = "b";
+        else if (turn === "b") turn = "g";
+        else if (turn === "g") turn = "r";
+        else turn = "y";
+      }
+
+      function search_position(color) {
+        if (color === "y") {
+          // Yellow Entrance: (6, 0) or Index 78
+          if (slots[78].piece == null) return slots[78];
+        } else if (color === "g") {
+          // Green Entrance: (0, 6) or Index 6
+          if (slots[6].piece == null) return slots[6];
+        } else if (color === "r") {
+          // Red Entrance: (6, 12) or Index 96
+          if (slots[96].piece == null) return slots[96];
+        } else if (color === "b") {
+          // Blue Entrance: (12, 6) or Index 132
+          if (slots[132].piece == null) return slots[132];
+        }
+
+        // No entrance available, check for other available slots
+        for (var i = 0; i < slots.length; i++) {
+          if (slots[i].piece == null) {
+            return slots[i]; // Return the first available slot found
+          }
+        }
+
+        return null; // No available slot found
+      }
+
+      // Call to start the game
+      initializeGame();
+
+      // Function designed to update each state in the game and handle mouse events
+      function state_update(event) {
+        console.log(`Event Type: ${event.type}, Current State: ${state}`); // Log the event type and current state
+
+        if (event.type != "paint") {
+          // 1st situation
+          console.log("Entering 1st situation"); // Log entry to the first situation
+          for (var i = 0; i < pieces.length; i++) {
+            if (pieces[i].color == "y") pieces[i].material = mat_yellow;
+            if (pieces[i].color == "g") pieces[i].material = mat_green;
+            if (pieces[i].color == "r") pieces[i].material = mat_red;
+            if (pieces[i].color == "b") pieces[i].material = mat_blue;
+          }
+
+          for (var i = 0; i < slots.length; i++) {
+            if (slots[i].color == "y") slots[i].material = mat_yellow;
+            if (slots[i].color == "g") slots[i].material = mat_green;
+            if (slots[i].color == "r") slots[i].material = mat_red;
+            if (slots[i].color == "b") slots[i].material = mat_blue;
+            if (slots[i].color == "c") slots[i].material = mat_clear;
+            if (slots[i].color == "d") slots[i].material = mat_dark;
+          }
+
+          // diePlace.material = mat_dark;
+
+          updateCursor();
+        }
+
+        if (event.type == "mousemove" && state == "preselect") {
+          // 2nd situation
+          console.log("Entering 2nd situation: mousemove in preselect state"); // Log entry to the second situation
+          intersects = raycaster.intersectObjects(slots);
+          if (intersects.length) {
+            if (
+              !intersects[0].object.piece &&
+              intersects[0].object.color != "d"
+            ) {
+              intersects[0].object.material = mat_highlight;
+            }
+          }
+
+          intersects = raycaster.intersectObjects(pieces);
+          if (intersects.length) {
+            if (
+              intersects[0].object.color == turn &&
+              (intersects[0].object.init ||
+                current_die_value == 1 ||
+                current_die_value == 6)
+            ) {
+              intersects[0].object.material = mat_highlight;
+            }
+          }
+
+          intersects = raycaster.intersectObjects(dies);
+          if (intersects.length) {
+            diePlace.material = mat_highlight_dupl;
+          }
+        }
+
+        if (event.type == "mousedown" && state == "preselect") {
+          // 3rd situation
+          console.log("Entering 3rd situation: mousedown in preselect state"); // Log entry to the third situation
+          intersects = raycaster.intersectObjects(pieces);
+          die_array = [];
+          die_array.push(die);
+          intersect_die = raycaster.intersectObjects(die_array);
+          if (intersect_die.length) {
+            changeTurn();
+            rollDice();
+          }
+        }
+
+
+        if (event.type == "paint" && state == "turning") {
+          console.log("Entering paint in 'turning' state"); // Log entry when painting in turning state
+          state = "preselect";
+          rollDice();
+          return;
+        }
+
+      }
+
+      // Background
+      function loadBackground() {
+        scene.background = new THREE.Color(0x87ceeb); // Light Sky Blue
+      }
+      loadBackground();
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        state_update(new Event("paint"));
+
+        camera.position.x = 4.5;
+        camera.position.z = 7.5;
+        camera.position.y = -3;
+        camera.up.set(0, 0, 1);
+        camera.lookAt(look);
+
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener("mousemove", state_update, false);
+      window.addEventListener("mouseup", state_update, false);
+      window.addEventListener("mousedown", state_update, false);
+      animate();
+    </script>
+  </body>
+</html>
